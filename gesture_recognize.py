@@ -3,6 +3,7 @@ import mediapipe as mp
 import numpy as np
 import pickle
 import os
+import pygame  # or from pydub import AudioSegment
 
 # Initialize Mediapipe Hand module
 mp_hands = mp.solutions.hands
@@ -17,8 +18,18 @@ for gesture_file in os.listdir(gesture_directory):
     with open(os.path.join(gesture_directory, gesture_file), 'rb') as file:
         gesture_database[gesture_file] = pickle.load(file)
 
+# Initialize Pygame for audio playback
+pygame.mixer.init()
+pygame.mixer.music.load("./elfatiha.mp3")  # Replace with the actual path to your audio file
+
 # Open the camera
 cap = cv2.VideoCapture(0)
+
+# Set the desired video width and height
+desired_width = 800
+desired_height = 720
+
+is_playing = False  # Flag to check if audio is already playing
 
 while cap.isOpened():
     # Read a frame from the camera
@@ -60,11 +71,24 @@ while cap.isOpened():
                 min_mse_value = mse_value
                 recognized_gesture = gesture_filename[0:-4]
 
+        # Play audio if dua.pkl is recognized
+        if recognized_gesture.startswith("dua"):
+            if not is_playing:
+                pygame.mixer.music.play(-1)  # -1 for looping
+                is_playing = True
+        else:
+            # Stop audio if closed_hand.pkl is recognized
+            pygame.mixer.music.stop()
+            is_playing = False
+
         # Display the recognized gesture filename
         cv2.putText(frame, recognized_gesture, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
+    # Resize the frame for display
+    resized_frame = cv2.resize(frame, (desired_width, desired_height))
+
     # Display the frame
-    cv2.imshow('Recognizing Gestures', frame)
+    cv2.imshow('Recognizing Gestures', resized_frame)
 
     # Break the loop if 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
